@@ -13,8 +13,7 @@ CREATE TABLE bookings (
   party_size_max INT NOT NULL,
   time VARCHAR(50) NOT NULL,
   restaurant_id INT NOT NULL,
-  PRIMARY KEY(id),
-  UNIQUE(date, time)
+  PRIMARY KEY(id)
 );
 
 INSERT INTO bookings (party_size, date, party_size_max, time, restaurant_id) VALUES (4, '2018-06-03', 5, '8:00 AM', 1092);
