@@ -1,0 +1,50 @@
+.jumbotronClean {
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-radius: 0px;
+  width: 100%; 
+}
+
+.warning {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.warn {
+  display: inline-block;
+  padding-left: 0px;
+  padding-right: 0px;
+}
+.circle {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+.circle {
+  display: inline-block; 
+}    
+.timeButt {
+  background-color: #da3743;
+  border-radius: 0;
+  margin-right: 8px;
+  margin-top: 8px;
+  box-shadow: none;
+}
+#timeButtid {
+  outline: none;
+  box-shadow: none;   
+  height: 35px;
+}
+
+.timeButt:hover {
+  background: #b7222d;
+}
+.bookedToday {
+  padding-top: 20px;
+  font-weight: bold;
+  padding-right: 10px;
+}
+.bookedTodayNum {
+  font-weight: bold;
+  padding-right: 10px;
+}

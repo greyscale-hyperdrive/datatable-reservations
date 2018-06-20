@@ -1,0 +1,17 @@
+.calendar {
+  position: relative;
+  top: 3px;
+  width: 100%;
+  border: none;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dcd6d6
+}
+
+.calendar:hover {
+  border-bottom: 2px solid red;
+  padding-bottom: 9px;
+}
+input[type=date]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  display: none;
+}

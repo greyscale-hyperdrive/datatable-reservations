@@ -1,0 +1,104 @@
+.reserveContainer {
+  border: 1px solid #dcd6d6;
+  margin: 0px;
+  box-shadow: 1px 2px 3px rgba(0,0,0,.2);
+}
+
+.title {
+  margin-top: 2.33px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+	border-bottom: 1px solid #dcd6d6;
+  text-align: center;
+}
+
+.container .container-fluid {
+  padding-right: 0px;
+  padding-left: 0px;
+  width: 100%;
+}
+.container {
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+.dateTimeContain {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.dateTitle{ 
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 15px;
+  padding-right: 0px;
+}
+
+.timeTitle {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.dateCol {
+  padding-right: 5px;
+  padding-left: 15px;
+}
+
+.timeCol {
+  padding-top: 5px;
+  padding-left: 0px;
+  padding-right: 15px;
+}
+
+.buttStyle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.findButt {
+  width: 288px;
+  height: 48px;
+  background-color: #da3743;
+  border-radius: 0;
+  outline:none;
+}
+#findButtonid {
+  outline:none;
+  box-shadow: none;
+}
+
+.findButt:hover {
+  background: #b7222d;
+}
+
+
+.slots {
+  padding-top: 10px; 
+  padding-right: 0px;
+  padding-left: 0px;
+  padding-bottom: 10px;
+}
+
+.saveButt {
+  display:none;
+  width: 288px;
+  height: 48px;
+  border-radius: 0;
+  position: relative;
+  top: 50px;
+  margin-left: 40%;
+  border: 1px solid gray;
+}
+.saveButt:hover {
+  border-color: #b7222d;
+}
+
+.arrowDown {
+  position:relative;
+  top: 20px;
+}

@@ -1,0 +1,42 @@
+.partyTitle {
+  margin-left: 0px;
+}
+.arrowptsize {
+  position: relative;
+  left: 95%;
+  top: 23px;
+  pointer-events: none;
+}
+
+.for {
+  position: relative;
+  top: 23px;
+  left: -10px;
+  pointer-events: none;
+}
+.partyD .arrowptsize .for{
+  display: inline-block;
+}
+.partyD {
+  border-bottom: 1px solid #dcd6d6;
+  padding-bottom: 10px;
+  margin-right: 0px;
+  margin-left: 0px;
+}
+.partyD:hover {
+  border-bottom: 2px solid red;
+  padding-bottom: 9px;
+}
+.partySelect {
+  width: 95%;
+  background: rgba(0,0,0,0);
+  color: solid black;
+  border-bottom: 1px solid #dcd6d6;
+  -webkit-appearance: none;
+}
+.PartySize {
+  Border: none;
+  margin-left: 10px;
+  outline: none;
+  width: 100%;
+}

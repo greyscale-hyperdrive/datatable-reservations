@@ -1,0 +1,39 @@
+.time {
+  padding-left: 0px;
+  top: 2px;
+}
+
+.timeArrow {
+  display: inline-block;
+  position: relative;
+  left: 90%;
+  pointer-events: none;
+}
+
+.timeSelect {
+  display: inline-block;
+  border-radius: 0px;
+}
+.timeSelect {
+  position: relative;
+  top: -23px;
+  border: none;
+  background-color: white;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  margin-right: 0px;
+  margin-left: 0px;
+  padding-top: 0px;
+  padding-right: 0px;
+  width: 100%;
+  background: rgba(0,0,0,0);
+  -webkit-appearance: none;
+  outline: none;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dcd6d6;
+}
+
+.timeSelect:hover {
+  border-bottom: 2px solid rgb(255, 0, 0);
+  padding-bottom: 9px;
+}
