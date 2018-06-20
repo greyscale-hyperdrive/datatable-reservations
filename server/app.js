@@ -11,6 +11,7 @@ app.use('/', express.static(path.join(__dirname, '../public')));
 
 // Create
 app.post('/restaurant/:restaurant_id/reservations', function(req, res) {
+  // Handle invalid requests
   if (!req.body || !req.body.date || !req.body.time) {
     res.status(400).json({
       error: {
@@ -20,6 +21,7 @@ app.post('/restaurant/:restaurant_id/reservations', function(req, res) {
     });
   }
 
+  // Perform database work
   db.postTimeSlot(req.params.restaurant_id, req.body.date, req.body.time, (error, data) => {
     if (error) {
       res.sendStatus(500);
