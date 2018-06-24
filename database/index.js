@@ -1,4 +1,4 @@
-const mariadbInterface = require('./mariadb-interface');
+const mariadbInterface = require('./mariadbInterface');
 
 // Next we'll switch here between MariaDB or MongoDB...
 

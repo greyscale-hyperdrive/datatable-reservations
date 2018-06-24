@@ -1,12 +1,14 @@
 const mysql = require('mysql');
 
-const connection = mysql.createConnection({
+const connectionOptions = {
   host: process.env.RDS_HOSTNAME || process.env.DATABASE_HOSTNAME,
   user: process.env.RDS_USERNAME || process.env.DATABASE_USERNAME,
   password: process.env.RDS_PASSWORD || process.env.DATABASE_PASSWORD,
   database: process.env.RDS_DB_NAME || process.env.DATABASE_DB_NAME,
   port: process.env.RDS_PORT || process.env.DATABASE_PORT
-});
+};
+console.info(connectionOptions);
+const connection = mysql.createConnection(connectionOptions);
 let mariadbInterface = {};
 
 // Create
@@ -20,6 +22,24 @@ mariadbInterface.postTimeSlot = (restaurant_id, date, time, party_size, party_si
     party_size_max
   };
   connection.query(q, booking, (error, results, fields) => cb(error, results));
+};
+
+// Bulk Create
+mariadbInterface.bulkInsert = function(dataset, cb) {
+  let q = 'INSERT INTO bookings (restaurant_id, date, time, party_size, party_size_max) VALUES ';
+  for(var i = 0; i < dataset.length; i++) {
+    if (typeof dataset[i] === 'Object') {
+      q += `(${dataset[i].restaurant_id}, '${dataset[i].date}', '${dataset[i].time}', ${dataset[i].party_size}, ${dataset[i].party_size_max})`;  
+    } else if (typeof dataset[i] === 'String') {
+      q += `(${dataset[i]})`;
+    }
+    
+    if (i !== dataset.length - 1) {
+      q += ',';
+    }
+  }
+  q += ';';
+  connection.query(q, (error, results, fields) => cb(error, results));
 };
 
 // Retrieval
