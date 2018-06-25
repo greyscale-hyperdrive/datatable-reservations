@@ -1,38 +1,107 @@
 const faker = require('faker');
-const { Readable } = require('stream');
 
-let generator = {};
+let dataGenerator = {};
 
+// Primary Method - Generic for possible inclusion of additional tables
+dataGenerator.writeToFileFromGeneratorSource = function(filepath, generatorSource, quantityTotal, encoding = 'utf8', callback) {
+  if (!filepath || typeof filepath !== 'string') { throw new Error("Invalid filepath provided."); }
+  if (Number.isNaN(quantityTotal)) { throw new Error("Invalid quantity provided."); }
+  if (typeof generatorSource !== 'function') { throw new Error("Invalid generatorSource provided."); }
 
-class dataStream extends Readable {
-  constructor(totalQuantity, batchQuantity) {
-    super();
-    this.totalQuantity = totalQuantity;
-    this.batchQuantity = batchQuantity;
-    this.currentCursor = 0;
-  }
+  const fileStream = fs.createWriteStream(filepath);
+  let quantityCount = 0;
+  let loggingStep = Math.floor(quantityTotal * 0.05); // Log at every x%
+  let currentLoggingTarget = loggingStep;
 
-  read(size) {
-    const batchSize = this.currentCursor > this.totalQuantity ? this.currentCursor - this.totalQuantity : this.batchQuantity;
-    const value = generator.getBatchOfBookingRecords(batchSize, true);
-    console.log(this);
-    console.log(value);
-    this.push(null);
-    return;
-    this.push(value);
-    if (this.currentCursor > this.totalQuantity) {
-      this.push(null); // We're at the end of the total request
+  const streamToFile = () => {
+    let belowDrainLevel = true;
+    do {
+      quantityCount += 1;
+      if (quantityCount === currentLoggingTarget) {
+        console.log(
+          `Completed writing ${currentLoggingTarget} of ${quantityTotal} records:`
+          + ` ${Math.floor((currentLoggingTarget / quantityTotal) * 100)}%.`
+        );
+        currentLoggingTarget += loggingStep; // Increase by x%
+      }
+      if (quantityCount === quantityTotal) {
+        // Hit the last line of requested quantity
+        // Perform final write and execute the callback
+        fileStream.write(generatorSource(), encoding, callback);
+      } else {
+        // Write and check drain status
+        belowDrainLevel = fileStream.write(generatorSource(), encoding);
+      }
+    } while (quantityCount < quantityTotal && belowDrainLevel);
+
+    // We hit the drain limit but we need to generate more lines
+    // Set up a recursive call to our same function to be fired once the drain 
+    // is finished to start again where we left off (quantityCount is scoped outside)
+    if (quantityCount < quantityTotal) {
+      fileStream.once('drain', streamToFile);
     }
-    this.currentCursor += batchSize;
-  }
+  };
+  // Kick off initial write/drain function
+  streamToFile();
 }
 
-generator.getReadStream = function(totalQuantity, batchQuantity) {
-  return new dataStream(totalQuantity, batchQuantity);
+// Table-specific Methods
+dataGenerator.createFakeBookingArray = function() {
+  const restaurant_id = faker.random.number({min: 1000, max: 5000});
+  const date = faker.date.recent(90).toISOString().slice(0,10);
+  const time = dataGenerator._generateTimeString();
+
+  // 21 is the max total party size available but the confirmed party_size must 
+  // always be less than the max so can't just do .number(21) on both lines
+  const party_size = faker.random.number({min: 1, max: 17});
+  const party_size_max = party_size + faker.random.number({min: 0, max: 4});
+
+  // Just a few quick sanity checks
+  if (restaurant_id < 1000 || restaurant_id > 5000) {
+    throw new Error("Generated an invalid restaurant_id");
+  }
+  if (party_size < 1 || party_size > 17) {
+    throw new Error("Generated an invalid party_size");
+  }
+  if (party_size_max < 1 || party_size_max > 21) {
+    throw new Error("Generated an invalid party_size_max");
+  }
+
+  return [
+    restaurant_id,
+    date,
+    time,
+    party_size,
+    party_size_max
+  ];
+}
+
+dataGenerator.createFakeBookingString = function() {
+  // restaurant_id, date, time, party_size, party_size_max
+  return dataGenerator.createFakeBookingArray().join(',') + '\n';
+};
+
+dataGenerator.createFakeBookingObject = function() {
+  const bookingColumns = ['restaurant_id', 'date', 'time', 'party_size', 'party_size_max'];
+  const fakeBookingArray = dataGenerator.createFakeBookingArray();
+
+  // length of both bookingColumns and the length of fakeBookingArray should always be 5
+  if ((bookingColumns.length !== fakeBookingArray.length) && (bookingColumns.length !== 5)) {
+    throw new Error("Something has gone terribly awry. Go home dataGenerator, you're drunk.");
+  }
+
+  let fakeBookingObject = {};
+  for(var i = 0; i < 5; i++) {
+    let currentColumn = bookingColumns[i];
+    let currentValue = fakeBookingArray[i];
+    fakeBookingObject[currentColumn] = currentValue;
+  }
+
+  return fakeBookingObject;
 };
 
 // Helper Methods
-const _generateTimeString = function() {
+dataGenerator._generateTimeString = function() {
   // String.padStart() here will ensure length is 2 and only then 
   // insert a leading zero (i.e. '12' will remain '12' not '012')
   let hour = faker.random.number(12).toString().padStart(2, '0');
@@ -41,44 +110,4 @@ const _generateTimeString = function() {
   return `${hour}:${min} ${period}`;
 };
 
-// Module Methods
-generator.createFakeBookingObject = function() {
-  const party_size = faker.random.number(17); // max party_size of 17
-  const party_size_max = party_size + faker.random.number(4); // max party_size_max of 21
-  return {
-    restaurant_id: faker.random.number(1000, 5000),
-    date: faker.date.recent(90).toISOString().slice(0,10),
-    time: _generateTimeString(),
-    party_size,
-    party_size_max
-  };
-};
-
-generator.createFakeBookingString = function() {
-  const party_size = faker.random.number(17); // max party_size of 17
-  const party_size_max = party_size + faker.random.number(4); // max party_size_max of 21
-  // restaurant_id, date, time, party_size, party_size_max
-  return [
-    faker.random.number(1000, 5000),
-    faker.date.recent(90).toISOString().slice(0,10),
-    _generateTimeString(),
-    party_size,
-    party_size_max
-  ].join(',');
-};
-
-generator.getBatchOfBookingRecords = function(quantity, string) {
-  // console.info(`Generating ${quantity} records:`);
-  let batch = [];
-  while(quantity > 0) {
-    if (string) {
-      batch.push(generator.createFakeBookingString());  
-    } else {
-      batch.push(generator.createFakeBookingObject());
-    }
-    quantity--;
-  }
-  return batch;
-};
-
-module.exports = generator;
+module.exports = dataGenerator;

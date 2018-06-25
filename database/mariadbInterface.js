@@ -25,22 +25,28 @@ mariadbInterface.postTimeSlot = (restaurant_id, date, time, party_size, party_si
 };
 
 // Bulk Create
-mariadbInterface.bulkInsert = function(dataset, cb) {
-  let q = 'INSERT INTO bookings (restaurant_id, date, time, party_size, party_size_max) VALUES ';
-  for(var i = 0; i < dataset.length; i++) {
-    if (typeof dataset[i] === 'Object') {
-      q += `(${dataset[i].restaurant_id}, '${dataset[i].date}', '${dataset[i].time}', ${dataset[i].party_size}, ${dataset[i].party_size_max})`;  
-    } else if (typeof dataset[i] === 'String') {
-      q += `(${dataset[i]})`;
-    }
-    
-    if (i !== dataset.length - 1) {
-      q += ',';
-    }
+mariadbInterface.bulkInsertIndividualBookingsArrayLines = function(arrayLines, cb) {
+  let q = 'INSERT INTO bookings (restaurant_id, date, time, party_size, party_size_max) VALUES ?';
+  // Note: We're building a array wherein each element is an array of values matching the columns
+  let batch = [];
+  for(var i = 0; i < arrayLines.length; i++) {
+    batch.push(arrayLines[i]);
   }
-  q += ';';
-  connection.query(q, (error, results, fields) => cb(error, results));
+  connection.query(q, [batch], (error, results, fields) => cb(error, results));
 };
+
+mariadbInterface.bulkInsertBatchBookingsArray = function(batchArray) {
+  let q = 'INSERT INTO bookings (restaurant_id, date, time, party_size, party_size_max) VALUES ?';
+  return new Promise((resolve, reject) => {
+    // Queue the query and either resolve or reject promise when complete as appropriate
+    connection.query(q, [batchArray], (error, results, fields) => {
+      if (error) {
+        return reject(error);
+      }
+      return resolve(results);
+    });
+  });
+}
 
 // Retrieval
 mariadbInterface.grabBooking = (booking_id, cb) => {
