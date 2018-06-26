@@ -5,11 +5,11 @@ const dataIngestor = require('./database/dataIngestor');
 // (not as a module for use by other project code)
 let seeder = {};
 
-seeder.generateAndWriteBookingsCsvFile = function(filepath, targetNumRecords = 10000000) {
+seeder.generateAndWriteReservationsCsvFile = function(filepath, targetNumRecords = 10000000) {
   console.time('totalTime');
   dataGenerator.writeToFileFromGeneratorSource(
     filepath,
-    dataGenerator.createFakeBookingString,
+    dataGenerator.createFakeReservationString,
     targetNumRecords,
     'utf8',
     () => {
@@ -19,11 +19,11 @@ seeder.generateAndWriteBookingsCsvFile = function(filepath, targetNumRecords = 1
   );
 };
 
-seeder.generateAndBulkInsertMariadbBookingsRecords = function(targetNumRecords = 10000000, batchSize = 1000) {
+seeder.generateAndBulkInsertMariadbReservationsRecords = function(targetNumRecords = 10000000, batchSize = 1000) {
   console.time("Total Time");
   dataIngestor.ingestArraysFromGeneratorToMariaDB(
-    dataGenerator.createFakeBookingArray,
-    'Bookings',
+    dataGenerator.createFakeReservationArray,
+    'Reservations',
     targetNumRecords,
     batchSize,
     () => {

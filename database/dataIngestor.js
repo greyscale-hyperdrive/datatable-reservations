@@ -20,7 +20,7 @@ ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceFunction, 
   //   * Below the batchQueueSize is at a locked-in 10% of the inserted batchSize inserts, and we also 
   //     make sure we don't floor to zero. For a batchSize of 10,000 records we'll increment in queues
   //     of 100 connections each time.
-  const batchQueueSize = Math.floor(batchSize / 100) > 0 ? Math.floor(batchSize / 100) : 1; 
+  const batchQueueSize = Math.floor(batchSize * 0.2) > 0 ? Math.floor(batchSize * 0.2) : 1; 
   // batchQueueStepSize is then the total rows inserted after ALL batchQueue connections have resolved
   const batchQueueStepSize = batchQueueSize * batchSize;
   // totalInsertsCounter tracks this increase of batchQueueStepSize each time all the queued operations resolve

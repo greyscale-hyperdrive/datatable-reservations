@@ -46,7 +46,7 @@ dataGenerator.writeToFileFromGeneratorSource = function(filepath, generatorSourc
 }
 
 // Table-specific Methods
-dataGenerator.createFakeBookingArray = function() {
+dataGenerator.createFakeReservationArray = function() {
   const restaurant_id = faker.random.number({min: 1000, max: 5000});
   const date = faker.date.recent(90).toISOString().slice(0,10);
   const time = dataGenerator._generateTimeString();
@@ -76,28 +76,28 @@ dataGenerator.createFakeBookingArray = function() {
   ];
 }
 
-dataGenerator.createFakeBookingString = function() {
+dataGenerator.createFakeReservationString = function() {
   // restaurant_id, date, time, party_size, party_size_max
-  return dataGenerator.createFakeBookingArray().join(',') + '\n';
+  return dataGenerator.createFakeReservationArray().join(',') + '\n';
 };
 
-dataGenerator.createFakeBookingObject = function() {
-  const bookingColumns = ['restaurant_id', 'date', 'time', 'party_size', 'party_size_max'];
-  const fakeBookingArray = dataGenerator.createFakeBookingArray();
+dataGenerator.createFakeReservationObject = function() {
+  const reservationColumns = ['restaurant_id', 'date', 'time', 'party_size', 'party_size_max'];
+  const fakeReservationArray = dataGenerator.createFakeReservationArray();
 
-  // length of both bookingColumns and the length of fakeBookingArray should always be 5
-  if ((bookingColumns.length !== fakeBookingArray.length) && (bookingColumns.length !== 5)) {
+  // length of both reservationColumns and the length of fakeReservationArray should always be 5
+  if ((reservationColumns.length !== fakeReservationArray.length) && (reservationColumns.length !== 5)) {
     throw new Error("Something has gone terribly awry. Go home dataGenerator, you're drunk.");
   }
 
-  let fakeBookingObject = {};
+  let fakeReservationObject = {};
   for(var i = 0; i < 5; i++) {
-    let currentColumn = bookingColumns[i];
-    let currentValue = fakeBookingArray[i];
-    fakeBookingObject[currentColumn] = currentValue;
+    let currentColumn = reservationColumns[i];
+    let currentValue = fakeReservationArray[i];
+    fakeReservationObject[currentColumn] = currentValue;
   }
 
-  return fakeBookingObject;
+  return fakeReservationObject;
 };
 
 // Helper Methods
