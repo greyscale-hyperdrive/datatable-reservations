@@ -31,6 +31,22 @@ seeder.seedAllMariadbTables = function() {
     });
 };
 
+seeder.seedCouchdbDatabase = function() {
+  console.time("Total Time");
+  dataIngestor.ingestDocumentObjectFromGeneratorToCouchDB(
+    dataGenerator.createFakeDocumentObject,
+    10000000,
+    (error) => {
+      console.timeEnd("Total Time");
+      if (error) {
+        console.log("\n☠ ❌ ☠️");
+      } else {
+        console.log("\n🌟 💃 🌟");
+      }          
+    }
+  );
+}
+
 /*
 Ingestion Methods
 */

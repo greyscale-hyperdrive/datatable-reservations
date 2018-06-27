@@ -1,27 +1,10 @@
+const couchimport = require('couchimport');
+const path = require('path');
 const mariadbInterface = require('./mariadbInterface');
+const couchdbInterface = require('./couchdbInterface');
+const dataUtilities = require('./dataUtilities');
 
 let ingestor = {};
-
-// Utility Method
-const getProgressPrinter = () => {
-  const emojis = ['📄', '📃', '📝'];
-  let emojiCounter = 0;
-
-  // Return Function object with closure to our emoji variables 🤓
-  return (totalInsertsCounter, quantityTotal) => {
-    let currentEmoji = emojis[emojiCounter];
-
-    emojiCounter++;
-    if (emojiCounter === emojis.length) {
-      emojiCounter = 0;
-    }
-
-    process.stdout.write(
-      `   ${currentEmoji} : ${totalInsertsCounter} of ${quantityTotal} ` +
-      `[${Math.floor(totalInsertsCounter / quantityTotal * 100)}%]` + '\r'
-    );
-  };
-};
 
 // Primary Methods
 ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceMethod, mariadbBulkInsertMethod, quantityTotal, ingestionCallback) {
@@ -29,7 +12,7 @@ ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceMethod, ma
   if (quantityTotal % 10 !== 0) {
     throw new Error("quantityTotal is divisible by 10.");
   }
-  batchSize = quantityTotal * 0.01 > 1000 ? 1000 : quantityTotal * 0.01; // batchSize max is 1000
+  const batchSize = quantityTotal * 0.01 > 1000 ? 1000 : quantityTotal * 0.01; // batchSize max is 1000
 
   // How batchSize and batchConnectionSegmentSize relate:
   //
@@ -50,7 +33,7 @@ ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceMethod, ma
   let totalInsertsCounter = 0;
 
   // Utility function to track how far along in the total process we are and print percentage to stdout
-  let progressPrinter = getProgressPrinter();
+  let progressPrinter = dataUtilities.getProgressPrinter();
 
   // Create batchSize number of rows in Array form and return
   var generateBatch = function() {
@@ -75,7 +58,7 @@ ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceMethod, ma
       return;
     }
 
-    // Asynchronously fire off all of the connections and inserts for this queue
+    // Asynchronously set up all of the connections and inserts for this queue
     let bulkInsertPromises = [];
     for (var i = 0; i < batchConnectionSegmentSize; i++) {
       let insertBatch = generateBatch();
@@ -99,6 +82,27 @@ ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceMethod, ma
   };
   // Kick 'er off
   fireNextBatchConnectionSegment();
+};
+
+ingestor.ingestTSVtoCouchDB = function(filepath) {
+  // How many we've inserted
+  const couchImportOptions = {
+    COUCH_DELIMITER: '\t',
+    COUCH_URL: 'http://localhost:5984',
+    COUCH_DATABASE: 'datatable_reservations',
+    // COUCH_TRANSFORM: path.join(__dirname, './couchdbTransformer.js'),
+  };
+
+  console.time('CouchDB TSV Import');
+  console.log("Starting CouchDB TSV Import");
+  couchimport.importFile(filepath, couchImportOptions, function(error) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log('Finished Import');
+      console.timeEnd('CouchDB TSV Import');
+    }
+  });
 };
 
 module.exports = ingestor;

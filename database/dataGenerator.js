@@ -1,11 +1,13 @@
 const faker = require('faker');
+const fs = require('fs');
+const dataUtilities = require('./dataUtilities');
 
 let dataGenerator = {
   max_restaurants: 20000,
   max_users: 50000,
   user_columns: ['username', 'email'],
   restaurant_columns: ['restaurant_name', 'cuisine', 'phone_number', 'address', 'website', 'dining_style'],
-  reservation_columns: ['user_id', 'restaurant_id', 'party_size', 'party_size_max', 'date', 'time'],
+  reservation_columns: ['user_id', 'restaurant_id', 'party_size', 'party_size_max', 'date', 'time']
 };
 
 /*
@@ -79,8 +81,19 @@ dataGenerator.createFakeReservationArray = function() {
   ];
 };
 
+dataGenerator.createFakeDocumentArray = function() {
+  // Gather all arrays
+  const userArray = dataGenerator.createFakeUserArray();
+  const restaurantArray = dataGenerator.createFakeRestaurantArray();
+  // Don't want the IDs from reservationArray so slice them off
+  const reservationArray = dataGenerator.createFakeReservationArray().slice(2);
+
+  documentArray = [].concat(userArray, restaurantArray, reservationArray);
+  return documentArray;
+};
+
 dataGenerator.zipColumnsAndArrayIntoObject = function(columns, array) {
-  if ((columns.length !== arrray.length)) {
+  if ((columns.length !== array.length)) {
     throw new Error("Given columns and array are not the same length, unable to zip.");
   }
 
@@ -88,21 +101,50 @@ dataGenerator.zipColumnsAndArrayIntoObject = function(columns, array) {
   for (var i = 0; i < columns.length; i++) {
     let column = columns[i];
     let value = array[i];
-    obj[currentColumn] = value;
+    obj[column] = value;
   }
 
   return obj;
 };
 
-// CSV Utility
-dataGenerator.writeToFileFromGeneratorSource = function(filepath, generatorSource, quantityTotal, encoding = 'utf8', callback) {
+// CSV Utilities
+dataGenerator.writeCouchdbDocumentRowsToCSV = function(filepath) {
+  console.log('Writing CouchDB Documents to ' + filepath);
+  const columns = [
+    'username', 'email',
+    'restaurant_name', 'cuisine', 'phone_number', 'address', 'website', 'dining_style',
+    'party_size', 'party_size_max', 'date', 'time'
+  ];
+  console.time('WriteTime');
+  dataGenerator.writeToFileFromGeneratorSource(
+    filepath,
+    columns,
+    () => {
+      return dataGenerator.createFakeDocumentArray().join('\t') + '\n';
+    },
+    10000000,
+    () => {
+      console.log("Complete.");
+    }
+  );
+  console.timeEnd('WriteTime');
+  return;
+}
+
+dataGenerator.writeToFileFromGeneratorSource = function(filepath, columns, generatorSource, quantityTotal, callback) {
   if (!filepath || typeof filepath !== 'string') { throw new Error("Invalid filepath provided."); }
   if (Number.isNaN(quantityTotal)) { throw new Error("Invalid quantity provided."); }
   if (typeof generatorSource !== 'function') { throw new Error("Invalid generatorSource provided."); }
 
+  let progressPrinter = dataUtilities.getProgressPrinter();
+
   const fileStream = fs.createWriteStream(filepath);
+  if (columns) {
+    fileStream.write(columns.join('\t') + '\n');
+  }
+
   let quantityCount = 0;
-  let loggingStep = Math.floor(quantityTotal * 0.05); // Log at every x%
+  let loggingStep = 2500;
   let currentLoggingTarget = loggingStep;
 
   const streamToFile = () => {
@@ -110,19 +152,16 @@ dataGenerator.writeToFileFromGeneratorSource = function(filepath, generatorSourc
     do {
       quantityCount += 1;
       if (quantityCount === currentLoggingTarget) {
-        console.log(
-          `Completed writing ${currentLoggingTarget} of ${quantityTotal} records:`
-          + ` ${Math.floor((currentLoggingTarget / quantityTotal) * 100)}%.`
-        );
-        currentLoggingTarget += loggingStep; // Increase by x%
+        progressPrinter(currentLoggingTarget, quantityTotal);
+        currentLoggingTarget += loggingStep; // Increase by X%
       }
       if (quantityCount === quantityTotal) {
         // Hit the last line of requested quantity
         // Perform final write and execute the callback
-        fileStream.write(generatorSource(), encoding, callback);
+        fileStream.write(generatorSource(), 'utf8', callback);
       } else {
         // Write and check drain status
-        belowDrainLevel = fileStream.write(generatorSource(), encoding);
+        belowDrainLevel = fileStream.write(generatorSource(), 'utf8');
       }
     } while (quantityCount < quantityTotal && belowDrainLevel);
 
@@ -135,7 +174,7 @@ dataGenerator.writeToFileFromGeneratorSource = function(filepath, generatorSourc
   };
   // Kick off initial write/drain function
   streamToFile();
-}
+};
 
 // Helper Methods
 dataGenerator._generateTimeString = function() {
