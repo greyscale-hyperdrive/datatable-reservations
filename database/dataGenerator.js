@@ -1,8 +1,100 @@
 const faker = require('faker');
 
-let dataGenerator = {};
+let dataGenerator = {
+  max_restaurants: 20000,
+  max_users: 50000,
+  user_columns: ['username', 'email'],
+  restaurant_columns: ['restaurant_name', 'cuisine', 'phone_number', 'address', 'website', 'dining_style'],
+  reservation_columns: ['user_id', 'restaurant_id', 'party_size', 'party_size_max', 'date', 'time'],
+};
 
-// Primary Method - Generic for possible inclusion of additional tables
+/*
+ Table-specific Methods
+*/
+
+// Users
+dataGenerator.createFakeUserArray = function() {
+  const username = faker.internet.userName();
+  const email = faker.internet.email();
+
+  return [
+    username,
+    email
+  ];
+};
+
+// Restaurants
+const restaurantCuisines = [
+  'Burgers', 'Sushi', 'Pasta', 'Burritos', 'Tacos', 'Ramen', 'Noodles',
+  'American', 'Mexican', 'French', 'Italian', 'Japanese', 'Chinese', 'Korean'
+];
+const restaurantDiningStyles = [
+  'Fine dining', 'Casual', 'Fast food', 'Cafe', 'Buffet'
+];
+dataGenerator.createFakeRestaurantArray = function() {
+  const restaurant_name = faker.company.companyName();
+  const cuisine = restaurantCuisines[
+    faker.random.number({min: 0, max: restaurantCuisines.length -1})
+  ];
+  const phone_number = faker.phone.phoneNumber();
+  const address = [
+    faker.address.streetAddress(),
+    faker.address.city(),
+    faker.address.zipCode()
+  ].join(', ');
+  const website = faker.internet.url();
+  const dining_style = restaurantDiningStyles[
+    faker.random.number({min: 0, max: restaurantDiningStyles.length -1})
+  ];
+
+  return [
+    restaurant_name,
+    cuisine,
+    phone_number,
+    address,
+    website,
+    dining_style
+  ];
+};
+
+// Reservations
+dataGenerator.createFakeReservationArray = function() {
+  const user_id = faker.random.number({min: 1, max: dataGenerator.max_users});
+  const restaurant_id = faker.random.number({min: 1, max: dataGenerator.max_restaurants});
+  const date = faker.date.recent(90).toISOString().slice(0,10);
+  const time = dataGenerator._generateTimeString();
+
+  // 21 is the max total party size available but the confirmed party_size must 
+  // always be less than the max so can't just do .number(21) on both lines
+  const party_size = faker.random.number({min: 1, max: 17});
+  const party_size_max = party_size + faker.random.number({min: 0, max: 4});
+
+  return [
+    user_id,
+    restaurant_id,
+    party_size,
+    party_size_max,
+    date,
+    time
+  ];
+};
+
+dataGenerator.zipColumnsAndArrayIntoObject = function(columns, array) {
+  if ((columns.length !== arrray.length)) {
+    throw new Error("Given columns and array are not the same length, unable to zip.");
+  }
+
+  let obj = {};
+  for (var i = 0; i < columns.length; i++) {
+    let column = columns[i];
+    let value = array[i];
+    obj[currentColumn] = value;
+  }
+
+  return obj;
+};
+
+// CSV Utility
 dataGenerator.writeToFileFromGeneratorSource = function(filepath, generatorSource, quantityTotal, encoding = 'utf8', callback) {
   if (!filepath || typeof filepath !== 'string') { throw new Error("Invalid filepath provided."); }
   if (Number.isNaN(quantityTotal)) { throw new Error("Invalid quantity provided."); }
@@ -44,61 +136,6 @@ dataGenerator.writeToFileFromGeneratorSource = function(filepath, generatorSourc
   // Kick off initial write/drain function
   streamToFile();
 }
-
-// Table-specific Methods
-dataGenerator.createFakeReservationArray = function() {
-  const restaurant_id = faker.random.number({min: 1000, max: 5000});
-  const date = faker.date.recent(90).toISOString().slice(0,10);
-  const time = dataGenerator._generateTimeString();
-
-  // 21 is the max total party size available but the confirmed party_size must 
-  // always be less than the max so can't just do .number(21) on both lines
-  const party_size = faker.random.number({min: 1, max: 17});
-  const party_size_max = party_size + faker.random.number({min: 0, max: 4});
-
-  // Just a few quick sanity checks
-  if (restaurant_id < 1000 || restaurant_id > 5000) {
-    throw new Error("Generated an invalid restaurant_id");
-  }
-  if (party_size < 1 || party_size > 17) {
-    throw new Error("Generated an invalid party_size");
-  }
-  if (party_size_max < 1 || party_size_max > 21) {
-    throw new Error("Generated an invalid party_size_max");
-  }
-
-  return [
-    restaurant_id,
-    date,
-    time,
-    party_size,
-    party_size_max
-  ];
-}
-
-dataGenerator.createFakeReservationString = function() {
-  // restaurant_id, date, time, party_size, party_size_max
-  return dataGenerator.createFakeReservationArray().join(',') + '\n';
-};
-
-dataGenerator.createFakeReservationObject = function() {
-  const reservationColumns = ['restaurant_id', 'date', 'time', 'party_size', 'party_size_max'];
-  const fakeReservationArray = dataGenerator.createFakeReservationArray();
-
-  // length of both reservationColumns and the length of fakeReservationArray should always be 5
-  if ((reservationColumns.length !== fakeReservationArray.length) && (reservationColumns.length !== 5)) {
-    throw new Error("Something has gone terribly awry. Go home dataGenerator, you're drunk.");
-  }
-
-  let fakeReservationObject = {};
-  for(var i = 0; i < 5; i++) {
-    let currentColumn = reservationColumns[i];
-    let currentValue = fakeReservationArray[i];
-    fakeReservationObject[currentColumn] = currentValue;
-  }
-
-  return fakeReservationObject;
-};
 
 // Helper Methods
 dataGenerator._generateTimeString = function() {

@@ -24,18 +24,21 @@ mariadbInterface.postTimeSlot = (restaurant_id, date, time, party_size, party_si
 };
 
 // Bulk Create
-mariadbInterface.bulkInsertIndividualReservationsArrayLines = function(arrayLines, cb) {
-  let q = 'INSERT INTO reservations (restaurant_id, date, time, party_size, party_size_max) VALUES ?';
+mariadbInterface.bulkInsertIndividualReservationsArrayLines = function(insertionQueryString, arrayLines, cb) {
   // Note: We're building a array wherein each element is an array of values matching the columns
   let batch = [];
   for(var i = 0; i < arrayLines.length; i++) {
     batch.push(arrayLines[i]);
   }
-  connection.query(q, [batch], (error, results, fields) => cb(error, results));
+  // Example insertionQueryString:
+  //   - 'INSERT INTO reservations (restaurant_id, date, time, party_size, party_size_max) VALUES ?'
+  connection.query(insertionQueryString, [batch], (error, results, fields) => cb(error, results));
 };
 
-mariadbInterface.bulkInsertBatchReservationsArray = function(batchArray) {
-  let q = 'INSERT INTO reservations (restaurant_id, date, time, party_size, party_size_max) VALUES ?';
+
+// XXX
+mariadbInterface.bulkInsertUsersArrayBatch = function(batchArray) {
+  let q = 'INSERT INTO users (username, email) VALUES ?';
   return new Promise((resolve, reject) => {
     // Queue the query and either resolve or reject promise when complete as appropriate
     connection.query(q, [batchArray], (error, results, fields) => {
@@ -45,7 +48,33 @@ mariadbInterface.bulkInsertBatchReservationsArray = function(batchArray) {
       return resolve(results);
     });
   });
-}
+};
+
+mariadbInterface.bulkInsertRestaurantArrayBatch = function(batchArray) {
+  let q = 'INSERT INTO restaurants (restaurant_name, cuisine, phone_number, address, website, dining_style) VALUES ?';
+  return new Promise((resolve, reject) => {
+    // Queue the query and either resolve or reject promise when complete as appropriate
+    connection.query(q, [batchArray], (error, results, fields) => {
+      if (error) {
+        return reject(error);
+      }
+      return resolve(results);
+    });
+  });
+};
+
+mariadbInterface.bulkInsertReservationsArrayBatch = function(batchArray) {
+  let q = 'INSERT INTO reservations (user_id, restaurant_id, party_size, party_size_max, date, time) VALUES ?';
+  return new Promise((resolve, reject) => {
+    // Queue the query and either resolve or reject promise when complete as appropriate
+    connection.query(q, [batchArray], (error, results, fields) => {
+      if (error) {
+        return reject(error);
+      }
+      return resolve(results);
+    });
+  });
+};
 
 // Retrieval
 mariadbInterface.grabReservation = (reservation_id, cb) => {
