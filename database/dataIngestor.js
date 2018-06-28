@@ -1,4 +1,6 @@
 const mariadbInterface = require('./mariadbInterface');
+const mongodbModels = require('./mongodbModels');
+const async = require('async');
 
 let ingestor = {};
 
@@ -71,7 +73,7 @@ ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceMethod, ma
       // Fire callback provided at the beginning of the outer function 
       // (usually to perform work once ALL records have been successfully inserted)
       ingestionCallback();
-      process.stdout.write("\n🍻"); // Cheers
+      console.info("\n🍻"); // Cheers!
       return;
     }
 
@@ -99,6 +101,49 @@ ingestor.ingestArraysFromGeneratorToMariaDB = function(generatorSourceMethod, ma
   };
   // Kick 'er off
   fireNextBatchConnectionSegment();
+};
+
+ingestor.ingestDocumentObjectsFromGeneratorToMongoDB = function(quantityTotal, documentGeneratorMethod, ingestionCallback) {
+  const reservationModel = mongodbModels.Reservation;
+
+  var counter = 0;
+  var bulk = reservationModel.collection.initializeOrderedBulkOp();
+
+  async.whilst(
+    // Iteration Halt Condition
+    () => quantityTotal >= counter,
+    // Iteration Function
+    (callback) => {
+      counter++;
+      bulk.insert(documentGeneratorMethod());
+
+      if (counter % 1000 === 0) {
+        bulk.execute((error, result) => {
+          bulk = reservationModel.collection.initializeOrderedBulkOp();
+          callback(error, result);
+        });
+      } else {
+        callback();
+      }
+    },
+    // Finalization Function
+    (error) => {
+      if (error) {
+        console.log(error);
+        throw error;
+      }
+      if (counter % 1000 === 0) {
+        bulk.execute((error, result) => {
+          if (error) {
+            console.log(error);
+            throw error;
+          }
+          console.log(result);
+        });
+      }
+      console.info("\n🥂"); // Clink!
+    }
+  );
 };
 
 module.exports = ingestor;
