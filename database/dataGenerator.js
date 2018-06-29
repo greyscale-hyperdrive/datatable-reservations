@@ -79,8 +79,29 @@ dataGenerator.createFakeReservationArray = function() {
   ];
 };
 
+// MongoDB Document Generator
+dataGenerator.createFakeReservationDocumentObject = function() {
+  const userObj = dataGenerator.zipColumnsAndArrayIntoObject(
+    dataGenerator.user_columns,
+    dataGenerator.createFakeUserArray()
+  );
+  const restaurantObj = dataGenerator.zipColumnsAndArrayIntoObject(
+    dataGenerator.restaurant_columns,
+    dataGenerator.createFakeRestaurantArray()
+  );
+  let reservationObj = dataGenerator.zipColumnsAndArrayIntoObject(
+    dataGenerator.reservation_columns.slice(2),       // We don't want the  
+    dataGenerator.createFakeReservationArray().slice(2), // user_id or restaurant_id fields
+  );
+
+  reservationObj.user = userObj;
+  reservationObj.restaurant = restaurantObj;
+
+  return reservationObj;
+};
+
 dataGenerator.zipColumnsAndArrayIntoObject = function(columns, array) {
-  if ((columns.length !== arrray.length)) {
+  if ((columns.length !== array.length)) {
     throw new Error("Given columns and array are not the same length, unable to zip.");
   }
 
@@ -88,7 +109,7 @@ dataGenerator.zipColumnsAndArrayIntoObject = function(columns, array) {
   for (var i = 0; i < columns.length; i++) {
     let column = columns[i];
     let value = array[i];
-    obj[currentColumn] = value;
+    obj[column] = value;
   }
 
   return obj;
