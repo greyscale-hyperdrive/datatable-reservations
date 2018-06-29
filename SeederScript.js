@@ -31,6 +31,16 @@ seeder.seedAllMariadbTables = function() {
     });
 };
 
+seeder.seedMongoDB = function(targetNumRecords = 10000000) {
+  dataIngestor.ingestDocumentObjectsFromGeneratorToMongoDB(
+    targetNumRecords,
+    dataGenerator.createFakeReservationDocumentObject,
+    () => {
+      console.log("\n🎆 🍾 🎆");
+    }
+  );
+}
+
 /*
 Ingestion Methods
 */
