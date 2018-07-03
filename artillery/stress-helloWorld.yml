@@ -1,0 +1,24 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 1
+      name: "Warm up the application"
+    - duration: 120
+      arrivalRate: 1
+      rampTo: 15
+      name: "jump to max load"
+    - duration: 120
+      arrivalRate: 15
+      name: "keep at the max load"
+    - duration: 60
+      arrivalRate: 15
+      rampTo: 1
+      name: "calm down"
+
+scenarios:
+    - flow:
+        - loop:
+            - get:
+                url: "/hello_world"
+          count: 100

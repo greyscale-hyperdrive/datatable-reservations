@@ -8,23 +8,15 @@ const connectionOptions = {
   port     : process.env.RDS_PORT     || process.env.DATABASE_PORT
 };
 const connection = mysql.createConnection(connectionOptions);
+
 let mariadbInterface = {};
 
-// Create
-mariadbInterface.postTimeSlot = (restaurant_id, date, time, party_size, party_size_max, cb) => {
-  const q = 'INSERT INTO reservations SET ?';
-  const reservation = {
-    restaurant_id,
-    date,
-    time,
-    party_size,
-    party_size_max
-  };
-  connection.query(q, reservation, (error, results, fields) => cb(error, results));
-};
+/*
+Create
+*/
 
 // Bulk Create
-mariadbInterface.bulkInsertIndividualReservationsArrayLines = (insertionQueryString, arrayLines, cb) => {
+mariadbInterface.bulkInsertIndividualReservationsArrayLines = function(insertionQueryString, arrayLines, cb) {
   // Note: We're building a array wherein each element is an array of values matching the columns
   let batch = [];
   for(var i = 0; i < arrayLines.length; i++) {
@@ -35,7 +27,7 @@ mariadbInterface.bulkInsertIndividualReservationsArrayLines = (insertionQueryStr
   connection.query(insertionQueryString, [batch], (error, results, fields) => cb(error, results));
 };
 
-mariadbInterface.bulkInsertUsersArrayBatch = (batchArray) => {
+mariadbInterface.bulkInsertUsersArrayBatch = function(batchArray) {
   let q = 'INSERT INTO users (username, email) VALUES ?';
   return new Promise((resolve, reject) => {
     // Queue the query and either resolve or reject promise when complete as appropriate
@@ -48,7 +40,7 @@ mariadbInterface.bulkInsertUsersArrayBatch = (batchArray) => {
   });
 };
 
-mariadbInterface.bulkInsertRestaurantArrayBatch = (batchArray) => {
+mariadbInterface.bulkInsertRestaurantArrayBatch = function(batchArray) {
   let q = 'INSERT INTO restaurants (restaurant_name, cuisine, phone_number, address, website, dining_style) VALUES ?';
   return new Promise((resolve, reject) => {
     // Queue the query and either resolve or reject promise when complete as appropriate
@@ -61,7 +53,7 @@ mariadbInterface.bulkInsertRestaurantArrayBatch = (batchArray) => {
   });
 };
 
-mariadbInterface.bulkInsertReservationsArrayBatch = (batchArray) => {
+mariadbInterface.bulkInsertReservationsArrayBatch = function(batchArray) {
   let q = 'INSERT INTO reservations (user_id, restaurant_id, party_size, party_size_max, date, time) VALUES ?';
   return new Promise((resolve, reject) => {
     // Queue the query and either resolve or reject promise when complete as appropriate
@@ -74,35 +66,61 @@ mariadbInterface.bulkInsertReservationsArrayBatch = (batchArray) => {
   });
 };
 
-// Retrieval
-mariadbInterface.grabReservation = (reservation_id, cb) => {
-  const q = 'SELECT * FROM reservations WHERE id = ?';
+// Individual Create
+mariadbInterface.postReservation = function(user_id, restaurant_id, date, time, party_size, party_size_max, cb) {
+  const q = 'INSERT INTO reservations SET ?';
+  const reservation = {
+    user_id,
+    restaurant_id,
+    date,
+    time,
+    party_size,
+    party_size_max
+  };
+  connection.query(q, reservation, (error, results, fields) => cb(error, results));
+};
+
+/*
+Retrieval
+*/
+mariadbInterface.grabReservation = function(reservation_id, cb) {
+  const q = 'SELECT * FROM reservations WHERE id = ? LIMIT 1';
   connection.query(q, [reservation_id], (error, results, fields) => cb(error, results));
 };
 
-mariadbInterface.grabReservations = (restaurant_id, date, time, cb) => {
-  const q = `SELECT * FROM reservations WHERE (restaurant_id = ? ${ date ? '&& date = ?' : '' } ${ time ? '&& time = ?' : '' })`;
-  connection.query(q, [restaurant_id, date, time], (error, results, fields) => cb(error, results));
+mariadbInterface.grabReservations = function(restaurant_id, user_id, date, time, cb) {
+  const q = `SELECT id, user_id, restaurant_id, party_size, party_size_max, date, time
+              FROM reservations WHERE
+                restaurant_id = ?
+                ${ user_id ? 'AND user_id = ?' : '' }
+                ${ date    ? 'AND date = ?'    : '' }
+                ${ time    ? 'AND time = ?'    : '' }
+              `;
+  connection.query(q, [restaurant_id, user_id, date, time], (error, results, fields) => cb(error, results));
 };
 
-mariadbInterface.grabTimeSlots = (restaurant_id, date, cb) => {
+mariadbInterface.grabTimeSlots = function(restaurant_id, date, cb) {
   const q = 'SELECT * FROM reservations WHERE (restaurant_id = ? && date = ?);';
   connection.query(q, [restaurant_id, date], (error, results, fields) => cb(error, results));
 };
 
-// Update
-mariadbInterface.updateReservation = (reservation_id, new_date, new_time, cb) => {
-  const q = 'UPDATE reservations SET date = ?, time = ? WHERE id = ?;';
-  connection.query(q, [new_date, new_time, reservation_id], (error, results, fields) => cb(error, results));
+/*
+Update
+*/
+mariadbInterface.updateReservation = function(reservation_id, new_date, new_time, cb) {
+  const q = 'UPDATE reservations SET date = ?, time = ? WHERE id = ? LIMIT 1;';
+  connection.query(q, [new_date, new_time, reservation_idd], (error, results, fields) => cb(error, results));
 };
 
-// Destroy
-mariadbInterface.deleteReservation = (restaurant_id, reservation_id, cb) => {
-  const q = 'DELETE FROM reservations WHERE id = ?;';
+/*
+Destroy
+*/
+mariadbInterface.deleteReservation = function(reservation_id, cb) {
+  const q = 'DELETE FROM reservations WHERE id = ? LIMIT 1;';
   connection.query(q, [reservation_id], (error, results, fields) => cb(error, results));
 };
 
-mariadbInterface.deleteReservationsAtTimeSlot = (restaurant_id, date, time, cb) => {
+mariadbInterface.deleteReservationsAtTimeSlot = function(restaurant_id, date, time, cb) {
   const q = 'DELETE FROM reservations WHERE (restaurant_id = ? && date = ? && time = ?);';
   connection.query(q, [restaurant_id, date, time], (error, results, fields) => cb(error, results));
 };

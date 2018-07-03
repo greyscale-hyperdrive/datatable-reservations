@@ -4,4 +4,7 @@ database/db.js
 database/exampleData.js
 database/injector.js
 database/config.js
-reservationsN1.0.zip
+
+# Ignore New Relic Config (contains license key) and logfile
+newrelic.js
+newrelic_agent.log
