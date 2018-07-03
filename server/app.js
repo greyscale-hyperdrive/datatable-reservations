@@ -31,6 +31,16 @@ const cacher = (req, res, next) => {
   next();
 };
 
+const handleDatabaseError = function(error, res) {
+  console.error(error);
+  return res.status(500).json({
+    error: {
+      code: 500,
+      message: "Error processing request. Please try again."
+    }
+  });
+};
+
 //  __________               __
 //  \______   \ ____  __ ___/  |_  ____   ______
 //   |       _//  _ \|  |  \   __\/ __ \ /  ___/
@@ -46,7 +56,39 @@ app.get('/hello_world', (req, res, next) => {
 /*
   Creation Routes
 */
-app.post('/restaurant/:restaurant_id/reservations', function(req, res) {
+app.post('/restaurants', function(req, res) {
+  // Handle invalid requests
+  if (!req.body.restaurant_name || !req.body.cuisine || !req.body.phone_number || !req.body.address) {
+    return res.status(400).json({
+      error: {
+        code: 400,
+        message: "Missing 'restaurant_name', 'cuisine', 'phone_number', or 'address' parameter(s) in request body."
+      }
+    });
+  }
+
+  db.createRestaurant(
+    req.body.restaurant_name, req.body.cuisine, req.body.phone_number, req.body.address, // These are required
+    req.body.website, req.body.dining_style, // These are optional
+    (error, data, fields) => {
+      if (error) {
+        return handleDatabaseError(error, res);
+      }
+      // If no error, return 200 and success message + appropriate data
+      console.info(data);
+      console.info(fields);
+      return res.json({
+        message: "Success.",
+        data: {
+          id: data.insertId
+        },
+        fields: fields
+      });
+    }    
+  );
+});
+
+app.post('/restaurants/:restaurant_id/reservations', function(req, res) {
   // Handle invalid requests
   if (!req.body.date || !req.body.time || !req.body.party_size) {
     return res.status(400).json({
@@ -60,25 +102,19 @@ app.post('/restaurant/:restaurant_id/reservations', function(req, res) {
   // Ideally for a real feature we'd also be doing some checking here to determine if this 
   // new date/time is available before we try to book it but that's out of scope for this project
 
-  db.postReservation(
-    // res.locals.connection,
+  db.createReservation(
     req.params.user_id, req.params.restaurant_id, 
     req.body.date,  req.body.time, req.body.party_size, req.body.party_size,
     (error, data) => {
       // Handle Database Errors
       if (error) {
-        console.error(error);
-        return res.status(500).json({
-         error: {
-            code: 500,
-            message: "Error processing request. Please try again."
-         }
-       });
+        return handleDatabaseError(error, res);
       }
-      // Otherwise return 200 and success message
+      // If no error, return 200 and success message + appropriate data
       console.info(data);
       return res.json({
-        message: "Success."
+        message: "Success.",
+        data: data
       });
     }
   );
@@ -87,7 +123,7 @@ app.post('/restaurant/:restaurant_id/reservations', function(req, res) {
 /*
   Retrieval Routes
 */
-app.get('/restaurant/:restaurant_id/reservations', cacher, function(req, res) {
+app.get('/restaurants/:restaurant_id/reservations', cacher, function(req, res) {
   // Select all IDs for reservations at this restaurant for a given date and time
   // This could then be used to update this specific reservation with the Update method below
   // NOTE: We should also really be including/validating user information so that one 
@@ -114,14 +150,13 @@ app.get('/restaurant/:restaurant_id/reservations', cacher, function(req, res) {
     });
 });
 
-app.get('/restaurant/:restaurant_id/:date', cacher, function(req, res) {
+app.get('/restaurants/:restaurant_id/:date', cacher, function(req, res) {
   // Select all available timeslots for reservations at this restaurant for a given date
 
   // I'd really like to change this URL to be underneath `/restaurant/:restaurant_id/reservations/date/:date`
   // or just as a query param for a more REST-ful structure but that would require patching 
   // the existing front-end implementation...
   db.grabTimeSlots(
-    // res.locals.connection,
     req.params.restaurant_id, req.params.date,
     (error, data) => {
       // Handle Database Errors
@@ -143,7 +178,7 @@ app.get('/restaurant/:restaurant_id/:date', cacher, function(req, res) {
 /*
   Update Routes
 */
-app.put('/restaurant/:restaurant_id/reservations/:reservation_id', function(req, res) {
+app.put('/restaurants/:restaurant_id/reservations/:reservation_id', function(req, res) {
   // Handle invalid requests
   if (!req.body.date || !req.body.time) {
     return res.status(400).json({
@@ -158,7 +193,6 @@ app.put('/restaurant/:restaurant_id/reservations/:reservation_id', function(req,
   // new date/time is available before we try to book it but that's out of scope for this project
 
   db.updateReservation(
-    // res.locals.connection,
     parseInt(req.params.reservation_id), parseInt(req.params.restaurant_id),
     req.body.date, req.body.time,
     (error, data) => {
@@ -193,12 +227,11 @@ app.put('/restaurant/:restaurant_id/reservations/:reservation_id', function(req,
 /*
   Destroy Routes
 */
-app.delete('/restaurant/:restaurant_id/reservations/:reservation_id', function(req, res) {
+app.delete('/restaurants/:restaurant_id/reservations/:reservation_id', function(req, res) {
   // No need for checks to missing params here, if `restaurant_id` or `reservation_id` were absent
   // then this wouldn't never even be matched and invoked
 
   db.deleteReservation(
-    // res.locals.connection,
     parseInt(req.params.reservation_id), parseInt(req.params.restaurant_id),
     (error, data) => {
       // Handle Database Errors
