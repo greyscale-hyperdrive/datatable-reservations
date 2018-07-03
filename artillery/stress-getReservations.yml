@@ -1,0 +1,26 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 1
+      name: "Warm up the application"
+    - duration: 120
+      arrivalRate: 1
+      rampTo: 10
+      name: "jump to max load"
+    - duration: 120
+      arrivalRate: 10
+      name: "keep at the max load"
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 1
+      name: "calm down"
+  processor: "./artilleryFunctions.js"
+
+scenarios:
+    - flow:
+        - function: "generateRandomUserId"
+        - loop:
+            - get:
+                url: "/restaurant/{{$randomNumber(1, 20000)}}/reservations?user_id={{ userId }}"
+          count: 200

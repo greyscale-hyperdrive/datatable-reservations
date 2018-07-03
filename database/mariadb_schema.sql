@@ -24,13 +24,13 @@ CREATE TABLE restaurants (
 
 DROP TABLE IF EXISTS reservations;
 CREATE TABLE reservations ( 
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  restaurant_id INT NOT NULL,
-  party_size INT NOT NULL,
-  party_size_max INT NOT NULL,
-  date DATE,
-  time VARCHAR(50) NOT NULL,
+  id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id INT(11) NOT NULL,
+  restaurant_id INT(11) NOT NULL,
+  party_size INT(11) NOT NULL,
+  party_size_max INT(11) NOT NULL,
+  date DATE DEFAULT NULL,
+  time VARCHAR(12) NOT NULL,
   CONSTRAINT `fk_reservation_user`
     FOREIGN KEY (user_id) REFERENCES users (id)
     ON DELETE CASCADE
@@ -38,5 +38,6 @@ CREATE TABLE reservations (
   CONSTRAINT `fk_reservation_restaurant`
     FOREIGN KEY (restaurant_id) REFERENCES restaurants (id)
     ON DELETE CASCADE
-    ON UPDATE RESTRICT
+    ON UPDATE RESTRICT,
+  KEY `user_id_restaurant_id_idx` (`user_id`,`restaurant_id`)
 );
