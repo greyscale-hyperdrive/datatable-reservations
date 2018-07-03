@@ -17,36 +17,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/', express.static(path.join(__dirname, '../public')));
 
-// Database Middleware 
-// Incoming requests will receive their own database connection
-// The connection is released back to the pool after response has been sent
-// app.use((req, res, next) => {
-//   const pool = db.connectAndGetPoolFromDatabase();
-//   pool.getConnection((error, connection) => {
-//     if (error) {
-//       // Something has gone wrong with the database connection, return error code and message
-//       console.error(error);
-//       return res.status(500).json({
-//         error: {
-//           code: 500,
-//           message: "Database Error. Please try again."
-//         }
-//       });
-//     }
-//     // Otherwise, we're good to go so add the connection to res.locals so it's available going
-//     // forward and then proceed to the route
-//     res.locals.connection = connection;
-//     // Then make sure that at the end of the response chain we always release our connection
-//     res.on('finish', () => {
-//       console.log("Releasing connection.");
-//       res.locals.connection.release();
-//       // console.log(res.locals.connection);
-//     });
-//     // Middleware is done and connection is available, move forward
-//     next();
-//   });
-// });
-
 // Caching Middleware
 // Store as variable so it can be applied as appropriate (e.g. for GETs but not POSTs)
 const cacher = (req, res, next) => {
