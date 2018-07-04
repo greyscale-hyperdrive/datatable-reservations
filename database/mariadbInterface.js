@@ -41,7 +41,10 @@ mariadbInterface.bulkInsertUsersArrayBatch = function(batchArray) {
 };
 
 mariadbInterface.bulkInsertRestaurantArrayBatch = function(batchArray) {
-  let q = 'INSERT INTO restaurants (restaurant_name, cuisine, phone_number, address, website, dining_style) VALUES ?';
+  let q = `INSERT INTO restaurants
+            (restaurant_name, cuisine, phone_number, address, website, dining_style)
+            VALUES ?
+          ;`;
   return new Promise((resolve, reject) => {
     // Queue the query and either resolve or reject promise when complete as appropriate
     connection.query(q, [batchArray], (error, results, fields) => {
@@ -54,7 +57,10 @@ mariadbInterface.bulkInsertRestaurantArrayBatch = function(batchArray) {
 };
 
 mariadbInterface.bulkInsertReservationsArrayBatch = function(batchArray) {
-  let q = 'INSERT INTO reservations (user_id, restaurant_id, party_size, party_size_max, date, time) VALUES ?';
+  let q = `INSERT INTO reservations
+            (user_id, restaurant_id, party_size, party_size_max, date, time)
+            VALUES ?
+          ;`;
   return new Promise((resolve, reject) => {
     // Queue the query and either resolve or reject promise when complete as appropriate
     connection.query(q, [batchArray], (error, results, fields) => {
@@ -67,7 +73,9 @@ mariadbInterface.bulkInsertReservationsArrayBatch = function(batchArray) {
 };
 
 // Individual Creation
-mariadbInterface.createRestaurant = function(restaurant_name, cuisine, phone_number, address, website, dining_style, cb) {
+mariadbInterface.createRestaurant = function(restaurant_name, cuisine, phone_number, 
+                                             address, website, dining_style, cb) {
+
   const q = 'INSERT INTO restaurants SET ?';
   const restaurant = {
 		restaurant_name,
@@ -80,11 +88,13 @@ mariadbInterface.createRestaurant = function(restaurant_name, cuisine, phone_num
   connection.query(q, restaurant, (error, results, fields) => cb(error, results, fields));
 };
 
-mariadbInterface.createReservation = function(user_id, restaurant_id, date, time, party_size, party_size_max, cb) {
+mariadbInterface.createReservation = function(restaurant_id, user_id, date, time, 
+                                              party_size, party_size_max, cb) {
+
   const q = 'INSERT INTO reservations SET ?';
   const reservation = {
-    user_id,
     restaurant_id,
+    user_id,
     date,
     time,
     party_size,
@@ -96,46 +106,74 @@ mariadbInterface.createReservation = function(user_id, restaurant_id, date, time
 /*
 Retrieval
 */
-mariadbInterface.grabReservation = function(reservation_id, cb) {
-  const q = 'SELECT * FROM reservations WHERE id = ? LIMIT 1';
-  connection.query(q, [reservation_id], (error, results, fields) => cb(error, results));
+mariadbInterface.retrieveRestaurants = function(id, restaurant_name, cuisine,
+                                                phone_number, address, website, dining_style, cb) {
+
+  const queryValues = Array.prototype.slice.call(arguments, 0, -1);
+  const q = `SELECT id, restaurant_name, cuisine, phone_number, address, website, dining_style
+              FROM restaurants WHERE
+                ${ id              !== undefined ? 'AND id = ?'              : '' }
+                ${ restaurant_name !== undefined ? 'AND restaurant_name = ?' : '' }
+                ${ cuisine         !== undefined ? 'AND cuisine = ?'         : '' }
+                ${ phone_number    !== undefined ? 'AND phone_number = ?'    : '' }
+                ${ address         !== undefined ? 'AND address = ?'         : '' }
+                ${ website         !== undefined ? 'AND website = ?'         : '' }
+                ${ dining_style    !== undefined ? 'AND dining_style = ?'    : '' }
+              ;`;
+  connection.query(q, queryValues, (error, results, fields) => cb(error, results));
 };
 
-mariadbInterface.grabReservations = function(restaurant_id, user_id, date, time, cb) {
+// This isn't being used... remove it.
+// mariadbInterface.retrieveReservation = function(reservation_id, cb) {
+//   const q = 'SELECT * FROM reservations WHERE id = ? LIMIT 1;';
+//   connection.query(q, [reservation_id], (error, results, fields) => cb(error, results));
+// };
+
+mariadbInterface.retrieveReservations = function(restaurant_id, user_id, date, time, cb) {
   const q = `SELECT id, user_id, restaurant_id, party_size, party_size_max, date, time
               FROM reservations WHERE
                 restaurant_id = ?
-                ${ user_id ? 'AND user_id = ?' : '' }
-                ${ date    ? 'AND date = ?'    : '' }
-                ${ time    ? 'AND time = ?'    : '' }
-              `;
+                ${ user_id !== undefined ? 'AND user_id = ?' : '' }
+                ${ date    !== undefined ? 'AND date = ?'    : '' }
+                ${ time    !== undefined ? 'AND time = ?'    : '' }
+              ;`;
   connection.query(q, [restaurant_id, user_id, date, time], (error, results, fields) => cb(error, results));
-};
-
-mariadbInterface.grabTimeSlots = function(restaurant_id, date, cb) {
-  const q = 'SELECT * FROM reservations WHERE (restaurant_id = ? && date = ?);';
-  connection.query(q, [restaurant_id, date], (error, results, fields) => cb(error, results));
 };
 
 /*
 Update
 */
-mariadbInterface.updateReservation = function(reservation_id, new_date, new_time, cb) {
-  const q = 'UPDATE reservations SET date = ?, time = ? WHERE id = ? LIMIT 1;';
-  connection.query(q, [new_date, new_time, reservation_idd], (error, results, fields) => cb(error, results));
+mariadbInterface.updateReservation = function(reservation_id, restaurant_id, // These must always be present and are unchangeable
+                                              user_id, date, time, party_size, party_size_max, cb) {
+  let updateSet = {};
+  // Only create updateSet keys if we actually have a value to work with
+  // (otherwise we'd be updating creating a blank key, and we'd end up updating the database with null values)
+  if (user_id        !== undefined) { updateSet.user_id        = user_id;        }
+  if (date           !== undefined) { updateSet.date           = date;           }
+  if (time           !== undefined) { updateSet.time           = time;           }
+  if (party_size     !== undefined) { updateSet.party_size     = party_size;     }
+  if (party_size_max !== undefined) { updateSet.party_size_max = party_size_max; }
+
+  const q = `UPDATE reservations
+              SET ?
+              WHERE id = ? AND restaurant_id = ?
+              LIMIT 1;
+            `;
+  connection.query(q, [updateSet, reservation_id, restaurant_id], (error, results, fields) => cb(error, results));
 };
 
 /*
 Destroy
 */
-mariadbInterface.deleteReservation = function(reservation_id, cb) {
-  const q = 'DELETE FROM reservations WHERE id = ? LIMIT 1;';
-  connection.query(q, [reservation_id], (error, results, fields) => cb(error, results));
+mariadbInterface.deleteReservation = function(reservation_id, restaurant_id, cb) {
+  const q = 'DELETE FROM reservations WHERE id = ? && restaurant_id = ? LIMIT 1;';
+  connection.query(q, [reservation_id, restaurant_id], (error, results, fields) => cb(error, results));
 };
 
-mariadbInterface.deleteReservationsAtTimeSlot = function(restaurant_id, date, time, cb) {
-  const q = 'DELETE FROM reservations WHERE (restaurant_id = ? && date = ? && time = ?);';
-  connection.query(q, [restaurant_id, date, time], (error, results, fields) => cb(error, results));
-};
+// This isn't being used... remove it.
+// mariadbInterface.deleteReservationsAtTimeSlot = function(restaurant_id, date, time, cb) {
+//   const q = 'DELETE FROM reservations WHERE (restaurant_id = ? && date = ? && time = ?);';
+//   connection.query(q, [restaurant_id, date, time], (error, results, fields) => cb(error, results));
+// };
 
 module.exports = mariadbInterface;

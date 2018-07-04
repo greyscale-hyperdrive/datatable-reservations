@@ -32,6 +32,13 @@ const cacher = (req, res, next) => {
 };
 
 const handleDatabaseError = function(error, res) {
+  // NOTE: We could check for error.errno codes here and return different statuses
+  // such as 400s if the error was actually the user's fault, but that's outside of our scope
+  // Just noting these as ones that I ran into while testing:
+  //
+  // 1048 - ER_BAD_NULL_ERROR        - Column is NOT NULL and you tried to insert a null value
+  // 1292 - ER_TRUNCATED_WRONG_VALUE - Occurs when the incoming data is not the right format
+  // 1452 - ER_NO_REFERENCED_ROW_2   - Invalid Foreign Key
   console.error(error);
   return res.status(500).json({
     error: {
@@ -70,19 +77,16 @@ app.post('/restaurants', function(req, res) {
   db.createRestaurant(
     req.body.restaurant_name, req.body.cuisine, req.body.phone_number, req.body.address, // These are required
     req.body.website, req.body.dining_style, // These are optional
-    (error, data, fields) => {
+    (error, data) => {
       if (error) {
         return handleDatabaseError(error, res);
       }
       // If no error, return 200 and success message + appropriate data
-      console.info(data);
-      console.info(fields);
       return res.json({
         message: "Success.",
         data: {
           id: data.insertId
-        },
-        fields: fields
+        }
       });
     }    
   );
@@ -90,11 +94,11 @@ app.post('/restaurants', function(req, res) {
 
 app.post('/restaurants/:restaurant_id/reservations', function(req, res) {
   // Handle invalid requests
-  if (!req.body.date || !req.body.time || !req.body.party_size) {
+  if (!req.body.user_id || !req.body.date || !req.body.time || !req.body.party_size) {
     return res.status(400).json({
       error: {
         code: 400,
-        message: "Missing 'date', 'time', or 'party_size' parameter(s) in request body."
+        message: "Missing 'user_id', date', 'time', or 'party_size' parameter(s) in request body."
       }
     });
   }
@@ -103,8 +107,8 @@ app.post('/restaurants/:restaurant_id/reservations', function(req, res) {
   // new date/time is available before we try to book it but that's out of scope for this project
 
   db.createReservation(
-    req.params.user_id, req.params.restaurant_id, 
-    req.body.date,  req.body.time, req.body.party_size, req.body.party_size,
+    req.params.restaurant_id, req.body.user_id,
+    req.body.date, req.body.time, req.body.party_size, req.body.party_size,
     (error, data) => {
       // Handle Database Errors
       if (error) {
@@ -114,7 +118,9 @@ app.post('/restaurants/:restaurant_id/reservations', function(req, res) {
       console.info(data);
       return res.json({
         message: "Success.",
-        data: data
+        data: {
+          id: data.insertId
+        }
       });
     }
   );
@@ -123,14 +129,38 @@ app.post('/restaurants/:restaurant_id/reservations', function(req, res) {
 /*
   Retrieval Routes
 */
+app.get('/restaurants/:restaurant_id', cacher, function(req, res) {
+  // Select all available restaurants for the given params
+  // (in this case, restaurant_id will always be present)
+  db.retrieveRestaurants(
+    req.params.restaurant_id,
+    req.query.restaurant_name, req.query.cuisine, req.query.phone_number, req.query.address,
+		req.query.website, req.query.dining_style,
+    (error, data) => {
+      // Handle Database Errors
+      if (error) {
+        console.error(error);
+        return res.status(500).json({
+          error: {
+            code: 500,
+            message: "Error processing request. Please try again."
+          }
+        });
+      }
+      // Otherwise return 200 and data
+      console.info(data);
+      return res.json(data);
+    });
+});
+
 app.get('/restaurants/:restaurant_id/reservations', cacher, function(req, res) {
   // Select all IDs for reservations at this restaurant for a given date and time
-  // This could then be used to update this specific reservation with the Update method below
+  // This could then be used to update these specific reservations with the appropriate PUT route
+
   // NOTE: We should also really be including/validating user information so that one 
   // user can't alter another user's reservation. Unfortunately this is out of scope though...
 
-  db.grabReservations(
-    // res.locals.connection,
+  db.retrieveReservations(
     req.params.restaurant_id,
     req.query.user_id, req.query.date, req.query.time,
     (error, data) => {
@@ -144,33 +174,8 @@ app.get('/restaurants/:restaurant_id/reservations', cacher, function(req, res) {
           }
         });
       }
-      // Otherwise return 200 and success message
+      // Otherwise return 200 and data
       // console.info(data);
-      return res.json(data);
-    });
-});
-
-app.get('/restaurants/:restaurant_id/:date', cacher, function(req, res) {
-  // Select all available timeslots for reservations at this restaurant for a given date
-
-  // I'd really like to change this URL to be underneath `/restaurant/:restaurant_id/reservations/date/:date`
-  // or just as a query param for a more REST-ful structure but that would require patching 
-  // the existing front-end implementation...
-  db.grabTimeSlots(
-    req.params.restaurant_id, req.params.date,
-    (error, data) => {
-      // Handle Database Errors
-      if (error) {
-        console.error(error);
-        return res.status(500).json({
-          error: {
-            code: 500,
-            message: "Error processing request. Please try again."
-          }
-        });
-      }
-      // Otherwise return 200 and success message
-      console.info(data);
       return res.json(data);
     });
 });
@@ -179,22 +184,10 @@ app.get('/restaurants/:restaurant_id/:date', cacher, function(req, res) {
   Update Routes
 */
 app.put('/restaurants/:restaurant_id/reservations/:reservation_id', function(req, res) {
-  // Handle invalid requests
-  if (!req.body.date || !req.body.time) {
-    return res.status(400).json({
-      error: {
-        code: 400,
-        message: "Missing 'date' or 'time' parameter(s) in request body."
-      }
-    });
-  }
-
-  // Ideally for a real feature we'd also be doing some checking here to determine if this 
-  // new date/time is available before we try to book it but that's out of scope for this project
 
   db.updateReservation(
     parseInt(req.params.reservation_id), parseInt(req.params.restaurant_id),
-    req.body.date, req.body.time,
+    req.body.user_id, req.body.date, req.body.time, req.body.party_size, req.body.party_size_max,
     (error, data) => {
       // Handle Database Errors
       if (error) {
@@ -207,7 +200,7 @@ app.put('/restaurants/:restaurant_id/reservations/:reservation_id', function(req
         });
       }
       // Check data, if this transaction did not affect any rows then the reservation_id is invalid
-      // return a 404 to indicate that this full path is inaccessible
+      // return a 404 to indicate that this path is invalid (changedRows is separate)
       if (data.affectedRows === 0) {
         return res.status(404).json({
           error: {
@@ -229,8 +222,7 @@ app.put('/restaurants/:restaurant_id/reservations/:reservation_id', function(req
 */
 app.delete('/restaurants/:restaurant_id/reservations/:reservation_id', function(req, res) {
   // No need for checks to missing params here, if `restaurant_id` or `reservation_id` were absent
-  // then this wouldn't never even be matched and invoked
-
+  // then this would never even be matched and invoked
   db.deleteReservation(
     parseInt(req.params.reservation_id), parseInt(req.params.restaurant_id),
     (error, data) => {
@@ -247,6 +239,7 @@ app.delete('/restaurants/:restaurant_id/reservations/:reservation_id', function(
       // Check data, if this item was already deleted (no rows affected) then 
       // return a 404 to indicate that this full path is now invalid
       if (data.affectedRows === 0) {
+        console.info(data);
         return res.status(404).json({
           error: {
             code: 404,
