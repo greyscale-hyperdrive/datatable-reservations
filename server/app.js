@@ -63,6 +63,34 @@ app.get('/hello_world', (req, res, next) => {
 /*
   Creation Routes
 */
+app.post('/users', function(req, res) {
+  // Handle invalid requests
+  if (!req.body.username || !req.body.email) {
+    return res.status(400).json({
+      error: {
+        code: 400,
+        message: "Missing 'username', or 'email' parameter(s) in request body."
+      }
+    });
+  }
+
+  db.createUser(
+    req.body.username, req.body.email,
+    (error, data) => {
+      if (error) {
+        return handleDatabaseError(error, res);
+      }
+      // If no error, return 200 and success message + appropriate data
+      return res.status(201).json({
+        message: "Success.",
+        data: {
+          id: data.insertId
+        }
+      });
+    }
+  );
+});
+
 app.post('/restaurants', function(req, res) {
   // Handle invalid requests
   if (!req.body.restaurant_name || !req.body.cuisine || !req.body.phone_number || !req.body.address) {
@@ -82,7 +110,7 @@ app.post('/restaurants', function(req, res) {
         return handleDatabaseError(error, res);
       }
       // If no error, return 200 and success message + appropriate data
-      return res.json({
+      return res.status(201).json({
         message: "Success.",
         data: {
           id: data.insertId
@@ -116,7 +144,7 @@ app.post('/restaurants/:restaurant_id/reservations', function(req, res) {
       }
       // If no error, return 200 and success message + appropriate data
       console.info(data);
-      return res.json({
+      return res.status(201).json({
         message: "Success.",
         data: {
           id: data.insertId
@@ -134,8 +162,8 @@ app.get('/restaurants/:restaurant_id', cacher, function(req, res) {
   // (in this case, restaurant_id will always be present)
   db.retrieveRestaurants(
     req.params.restaurant_id,
-    req.query.restaurant_name, req.query.cuisine, req.query.phone_number, req.query.address,
-		req.query.website, req.query.dining_style,
+    // req.query.restaurant_name, req.query.cuisine, req.query.phone_number, req.query.address,
+		// req.query.website, req.query.dining_style,
     (error, data) => {
       // Handle Database Errors
       if (error) {

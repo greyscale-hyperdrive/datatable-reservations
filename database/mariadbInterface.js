@@ -73,6 +73,15 @@ mariadbInterface.bulkInsertReservationsArrayBatch = function(batchArray) {
 };
 
 // Individual Creation
+mariadbInterface.createUser = function(username, email, cb) {
+  const q = 'INSERT INTO users SET ?';
+  const user = {
+    username,
+    email,
+  };
+  connection.query(q, user, (error, results, fields) => cb(error, results, fields));
+};
+
 mariadbInterface.createRestaurant = function(restaurant_name, cuisine, phone_number, 
                                              address, website, dining_style, cb) {
 
